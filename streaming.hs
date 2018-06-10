@@ -7,6 +7,8 @@
 
 {-# LANGUAGE ScopedTypeVariables #-}
 
+import Control.Concurrent (threadDelay)
+import Control.Monad.IO.Class (liftIO, MonadIO)
 import Data.Char (toUpper)
 import Data.IORef (newIORef, readIORef)
 import Streaming (Stream, Of, chunksOf, concats, lift)
@@ -25,11 +27,13 @@ ref = S.print $ S.mapM readIORef $ S.mapM newIORef $ S.each [1..100::Int]
 chunks :: IO ()
 chunks = S.print $ concats $ chunksOf 2 $ S.each [1,2,3,4,5,6]
 
---pauses' = S.print $ S.delay 1.0 S.each [1..10]
+streamDelay :: Int -> Stream (Of a) IO ()
+streamDelay s = liftIO $ threadDelay $ 1000000 * s
+
 pauses :: IO ()
 pauses = S.print $ concats chunkies
     where chunkies :: Stream (Stream (Of Int) IO) IO ()
-          chunkies = S.maps (\s -> S.delay 1.0 s) $ chunksOf 2 $ S.each [1..10]
+          chunkies = S.maps (\s -> s <* streamDelay 2) $ chunksOf 2 $ S.each [1..10]
 
 concats' :: (Monad m, Functor f) => Stream (Stream f m) m r -> Stream f m r
 concats' = loop where
@@ -38,7 +42,10 @@ concats' = loop where
     Effect m -> lift m >>= loop
     Step fs  -> fs >>= loop
 
+program :: IO (Of [String] ())
+program = S.toList $ S.takeWhile (\c -> c /= "quit") $ S.repeatM getLine
+
 main :: IO ()
 main = do
-    rs <- chunks
+    rs <- program
     print rs
