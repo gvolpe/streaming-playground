@@ -8,6 +8,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 import Control.Concurrent (threadDelay)
+import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO, MonadIO)
 import Data.Char (toUpper)
 import Data.IORef (newIORef, readIORef)
@@ -44,6 +45,9 @@ concats' = loop where
 
 program :: IO (Of [String] ())
 program = S.toList $ S.takeWhile (\c -> c /= "quit") $ S.repeatM getLine
+
+program' :: IO (Of [String] ())
+program' = S.toList $ void $ S.break (== "quit") $ S.repeatM getLine
 
 main :: IO ()
 main = do
